@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>部首を知ろう！ワークシート＆教員用ダッシュボード</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  body {
+    font-family: 'Inter', 'Noto Sans JP', "Yu Gothic", Meiryo, sans-serif;
+    background-color: #f5f7fb;
+    color: #1e293b;
+  }
+  .kanji-font {
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", serif;
+  }
+  @media print {
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    .print-only-panel {
+      box-shadow: none !important;
+      border: 1px solid #cbd5e1 !important;
+      margin-bottom: 16px !important;
+      break-inside: avoid;
+    }
+    .step-panel { display: block !important; }
+  }
+</style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- トップナビゲーションバー（右上に教員用ダッシュボードアクセスボタンを設置） -->
+  <nav class="no-print sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-xs">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 text-white font-bold text-sm shadow-xs">漢</span>
+        <span class="font-bold text-slate-800 text-sm sm:text-base tracking-tight">部首を知ろう！デジタルワークシート</span>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <span id="submissionBadge" class="hidden items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+          提出数: <strong id="navCount" class="ml-1 text-blue-700">0</strong>名
+        </span>
+        <button type="button" id="toggleDashboardBtn"
+          class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-blue-600 text-blue-600 bg-white hover:bg-blue-50 active:scale-[0.99] transition-all shadow-xs cursor-pointer">
+          <svg id="navIconTeacher" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <svg id="navIconStudent" class="w-4 h-4 hidden" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12"></path>
+          </svg>
+          <span id="toggleBtnText">教員用ダッシュボード</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 教員用ダッシュボード パスワード認証 -->
+  <div id="teacherPasswordModal" class="no-print fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="teacherPasswordTitle">
+    <form id="teacherPasswordForm" class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl border border-slate-200">
+      <div class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="10" rx="2"></rect><path stroke-linecap="round" stroke-linejoin="round" d="M7 11V7a5 5 0 0110 0v4"></path></svg>
+      </div>
+      <h2 id="teacherPasswordTitle" class="text-lg font-bold text-slate-900 mb-1">教員用ダッシュボード</h2>
+      <p class="text-sm text-slate-600 mb-4">閲覧するにはパスワードを入力してください。</p>
+      <label for="teacherPasswordInput" class="block text-sm font-bold text-slate-700 mb-1.5">パスワード</label>
+      <input id="teacherPasswordInput" type="password" autocomplete="current-password" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="パスワードを入力" required>
+      <p id="teacherPasswordError" class="text-sm text-red-600 mt-2 hidden">パスワードが違います。もう一度入力してください。</p>
+      <div class="flex justify-end gap-2 mt-5">
+        <button type="button" id="cancelTeacherPassword" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+        <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700">認証する</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- トースト通知（alert代替） -->
+  <div id="toast" class="no-print fixed bottom-5 right-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none">
+    <div id="toastInner" class="bg-slate-800 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-bold flex items-center gap-2.5">
+      <span id="toastMessage">通知メッセージ</span>
+    </div>
+  </div>
+
+  <!-- 確認モーダル（confirm代替） -->
+  <div id="confirmModal" class="no-print fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-200">
+      <h3 id="modalTitle" class="text-lg font-bold text-slate-900 mb-2">確認</h3>
+      <p id="modalDesc" class="text-sm text-slate-600 mb-6 leading-relaxed"></p>
+      <div class="flex justify-end gap-3">
+        <button type="button" id="modalCancelBtn" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition cursor-pointer">キャンセル</button>
+        <button type="button" id="modalConfirmBtn" class="px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition cursor-pointer">実行する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生徒回答詳細モーダル -->
+  <div id="detailModal" class="no-print fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-xl border border-slate-200">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 id="detailModalTitle" class="text-lg font-bold text-slate-900">回答詳細</h3>
+          <p id="detailModalSub" class="text-xs text-slate-500 mt-0.5"></p>
+        </div>
+        <button type="button" id="closeDetailModalBtn" class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div id="detailModalBody" class="p-6 overflow-y-auto space-y-5 text-sm"></div>
+      <div class="px-6 py-3.5 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex justify-end">
+        <button type="button" id="closeDetailModalBtn2" class="px-5 py-2 rounded-xl text-sm font-bold bg-slate-800 text-white hover:bg-slate-700 cursor-pointer">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- メインコンテンツエリア -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6 sm:py-8">
+
+    <!-- ==================== 生徒用ワークシートビュー ==================== -->
+    <div id="studentView" class="max-w-4xl mx-auto">
+      <header class="print-only-panel bg-gradient-to-br from-blue-50 via-white to-indigo-50/50 border border-slate-200 rounded-2xl p-6 sm:p-7 mb-5 shadow-xs">
+        <div class="flex flex-wrap items-start justify-between gap-2 mb-2">
+          <span class="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold tracking-wide">漢字の仕組み学習</span>
+          <span class="text-xs text-slate-500">全3ステップ</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">部首を知ろう！</h1>
+        <p class="text-slate-600 text-sm sm:text-base mt-1">漢字の部首と、その位置による呼び方を学習しよう。</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-blue-100">
+          <div>
+            <label for="studentClass" class="block text-sm font-bold text-slate-700 mb-1.5">クラス <span class="text-red-500">*</span></label>
+            <select id="studentClass" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="">選択してください</option>
+              <option value="1組">1組</option>
+              <option value="2組">2組</option>
+              <option value="3組">3組</option>
+              <option value="4組">4組</option>
+              <option value="5組">5組</option>
+            </select>
+          </div>
+          <div>
+            <label for="studentNumber" class="block text-sm font-bold text-slate-700 mb-1.5">出席番号 <span class="text-red-500">*</span></label>
+            <input id="studentNumber" type="number" min="1" max="50" placeholder="例：15"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label for="studentName" class="block text-sm font-bold text-slate-700 mb-1.5">名前 <span class="text-red-500">*</span></label>
+            <input id="studentName" type="text" maxlength="40" autocomplete="name" placeholder="例：山田 太郎"
+              class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+      </header>
+
+      <!-- ステップインジケーター -->
+      <div class="no-print flex items-center gap-2 mb-5 overflow-x-auto pb-1" id="stepIndicator" aria-label="学習ステップ">
+        <button type="button" data-goto="0" class="step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer">はじめに</button>
+        <span class="text-slate-300">▶</span>
+        <button type="button" data-goto="1" class="step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition cursor-pointer">STEP 1 部首の意味</button>
+        <span class="text-slate-300">▶</span>
+        <button type="button" data-goto="2" class="step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition cursor-pointer">STEP 2 部首の位置分類</button>
+        <span class="text-slate-300">▶</span>
+        <button type="button" data-goto="3" class="step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition cursor-pointer">STEP 3 部首を見つける</button>
+      </div>
+
+      <!-- はじめに：部首の説明 -->
+      <section class="print-only-panel step-panel bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 mb-5 shadow-xs" data-step="0">
+        <div class="flex items-center gap-2.5 mb-4">
+          <span class="px-2.5 py-0.5 rounded-md bg-indigo-600 text-white text-xs font-bold">はじめに</span>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">部首とは？</h2>
+        </div>
+        <div class="rounded-2xl border border-indigo-100 bg-indigo-50/70 p-5 sm:p-6">
+          <p class="text-base sm:text-lg leading-8 text-slate-800">
+            部首とは、漢字を構成する要素の中で、共通する一部分が集められたグループのこと。漢字には必ず一つの部首があり、漢字を分類・索引する際などに用いられる。
+          </p>
+        </div>
+        <p class="text-sm text-slate-600 mt-5">まずは部首の意味を確認してから、次のステップに進もう。</p>
+        <div class="no-print mt-6 flex justify-end">
+          <button type="button" class="next-step inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-xs cursor-pointer" data-next="1">
+            STEP 1へ進む
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- STEP 1 -->
+      <section class="print-only-panel step-panel bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 mb-5 shadow-xs" data-step="1" hidden>
+        <div class="flex items-center gap-2.5 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-blue-600 text-white text-xs font-bold">STEP 1</span>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">部首とは何か？</h2>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">問い：部首とは何のために使われるものでしょうか。説明ページで学んだことを参考に、自分の言葉で説明しましょう。</p>
+        <label for="step1Definition" class="block text-sm font-bold text-slate-700 mb-1.5">あなたの考え</label>
+        <textarea id="step1Definition" rows="4" placeholder="例：部首は、漢字を分類したり、辞書で漢字を調べたりするときに使われる。" class="w-full rounded-xl border border-slate-300 p-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+
+        <div class="no-print mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p id="step1SubmitStatus" class="text-xs text-slate-500">回答を入力して提出してから次へ進もう。</p>
+          <div class="flex items-center gap-2">
+            <button type="button" id="submitStep1Btn" class="px-5 py-3 rounded-xl border border-blue-600 text-blue-700 bg-white font-bold hover:bg-blue-50 transition cursor-pointer">STEP 1を提出</button>
+            <button type="button" class="next-step inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-xs cursor-pointer" data-next="2">
+              STEP 2へ進む
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="print-only-panel step-panel bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 mb-5 shadow-xs" data-step="2" hidden>
+        <div class="flex items-center gap-2.5 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-blue-600 text-white text-xs font-bold">STEP 2</span>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">部首の位置を分類しよう</h2>
+        </div>
+        <p class="text-sm text-slate-600 mb-4">問い：それぞれの漢字の部首は、七つの位置のうちどこにありますか。ヒントを参考に選びましょう。</p>
+
+        <!-- 7回答の位置解説 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">へん</div>
+            <div class="text-xs text-slate-600 mt-0.5">左側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">つくり</div>
+            <div class="text-xs text-slate-600 mt-0.5">右側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">かんむり</div>
+            <div class="text-xs text-slate-600 mt-0.5">上側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">あし</div>
+            <div class="text-xs text-slate-600 mt-0.5">下側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">たれ</div>
+            <div class="text-xs text-slate-600 mt-0.5">上から左側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center">
+            <div class="font-bold text-blue-700 text-sm">にょう</div>
+            <div class="text-xs text-slate-600 mt-0.5">左から下側</div>
+          </div>
+          <div class="bg-blue-50/80 border border-blue-100 rounded-xl p-2.5 text-center col-span-2 sm:col-span-1">
+            <div class="font-bold text-blue-700 text-sm">かまえ</div>
+            <div class="text-xs text-slate-600 mt-0.5">外側から囲む形</div>
+          </div>
+        </div>
+
+        <!-- 10問クイズカード -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5" id="quiz"></div>
+
+        <!-- 答え合わせ・リセット -->
+        <div class="no-print flex flex-wrap items-center gap-3 mt-6">
+          <button type="button" id="checkBtn" class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 transition shadow-xs cursor-pointer">
+            答え合わせをする
+          </button>
+          <button type="button" id="resetBtn" class="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer">
+            選択をリセット
+          </button>
+        </div>
+
+        <div id="resultBox" class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 hidden" aria-live="polite"></div>
+
+        <div class="no-print mt-5 flex flex-wrap items-center justify-between gap-3">
+          <p id="step2SubmitStatus" class="text-xs text-slate-500">10問に回答し、答え合わせをしてから提出しよう。</p>
+          <button type="button" id="submitStep2Btn" class="px-5 py-3 rounded-xl border border-blue-600 text-blue-700 bg-white font-bold hover:bg-blue-50 transition cursor-pointer">STEP 2を提出</button>
+        </div>
+
+        <div class="no-print mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
+          <button type="button" class="prev-step px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer" data-prev="1">
+            ← STEP 1に戻る
+          </button>
+          <button type="button" class="next-step inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-xs cursor-pointer" data-next="3">
+            STEP 3へ進む
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </section>
+
+      <!-- STEP 3 -->
+      <section class="print-only-panel step-panel bg-white border border-slate-200 rounded-2xl p-6 sm:p-7 mb-5 shadow-xs" data-step="3" hidden>
+        <div class="flex items-center gap-2.5 mb-2">
+          <span class="px-2.5 py-0.5 rounded-md bg-blue-600 text-white text-xs font-bold">STEP 3</span>
+          <h2 class="text-lg sm:text-xl font-bold text-slate-900">漢字の部首を見つけよう</h2>
+        </div>
+        <p class="text-sm text-slate-600 mb-5">問い：次の漢字から部首を見つけ、その部首の名前を書きましょう。</p>
+
+        <div class="space-y-4">
+          <div>
+            <label for="learned" class="block text-sm font-bold text-slate-700 mb-1.5">押・酒・慕・箇・刈 の部首と名前</label>
+            <p class="text-xs text-slate-500 mb-2">例：押 → てへん</p>
+            <textarea id="learned" rows="4" placeholder="押 → 〇〇
+酒 → 〇〇
+慕 → 〇〇
+箇 → 〇〇
+刈 → 〇〇"
+              class="w-full rounded-xl border border-slate-300 p-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+          <div>
+            <label for="difficult" class="block text-sm font-bold text-slate-700 mb-1.5">振り返り（任意）：学習して気づいたこと・疑問に思ったこと</label>
+            <textarea id="difficult" rows="3" placeholder="学習して難しかったことなどを書こう。"
+              class="w-full rounded-xl border border-slate-300 p-3.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+        </div>
+
+        <!-- 提出・コピー・印刷アクション -->
+        <div class="no-print mt-6 p-4 rounded-2xl bg-blue-50/70 border border-blue-100">
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" id="submitBtn" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 active:scale-[0.99] transition shadow-sm cursor-pointer">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+              STEP 3を提出
+            </button>
+            <button type="button" id="copyBtn" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+              回答・振り返りをコピー
+            </button>
+            <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-4 py-3 rounded-xl bg-white border border-slate-300 text-slate-700 font-bold hover:bg-slate-50 transition cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+              印刷する
+            </button>
+          </div>
+          <p id="step3SubmitStatus" class="text-xs text-slate-600 mt-2.5">STEP 3の問いに回答して提出してください。</p>
+        </div>
+
+        <div class="no-print mt-6 pt-5 border-t border-slate-100 flex items-center justify-between">
+          <button type="button" class="prev-step px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition cursor-pointer" data-prev="2">
+            ← STEP 2に戻る
+          </button>
+          <button type="button" id="newStudentBtn" class="text-xs font-bold text-slate-500 hover:text-blue-600 underline cursor-pointer">
+            次の生徒のために入力をクリアする
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ==================== 教員用ダッシュボードビュー ==================== -->
+    <div id="teacherDashboard" hidden class="space-y-6">
+      <!-- ヘッダー＆操作ツールバー -->
+      <header class="bg-slate-900 text-white rounded-2xl p-6 sm:p-7 shadow-md">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="px-2.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-bold">TEACHER DASHBOARD</span>
+              <span class="text-xs text-slate-400">部首を知ろう！ワークシート</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight">教員用ダッシュボード</h1>
+            <p class="text-slate-300 text-sm mt-1">各ステップの回答と提出状況、STEP 2の正答率を確認できます。新しい提出は約10秒ごとに自動反映されます。</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button type="button" id="exportCsvBtn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-xs cursor-pointer">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+              CSV出力
+            </button>
+            <button type="button" id="clearAllDataBtn" class="px-3.5 py-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-300 border border-red-800/50 text-xs font-bold transition cursor-pointer">
+              全データ削除
+            </button>
+          </div>
+        </div>
+
+        <!-- クラス別フィルタ -->
+        <div class="mt-6 pt-5 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2 flex-wrap" id="classFilterGroup">
+            <span class="text-xs font-bold text-slate-400 mr-1">クラス表示：</span>
+            <button type="button" data-filter="ALL" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white cursor-pointer">全クラス</button>
+            <button type="button" data-filter="1組" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">1組</button>
+            <button type="button" data-filter="2組" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">2組</button>
+            <button type="button" data-filter="3組" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">3組</button>
+            <button type="button" data-filter="4組" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">4組</button>
+            <button type="button" data-filter="5組" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer">5組</button>
+          </div>
+          <div class="text-xs text-slate-400" id="lastUpdatedLabel">最終更新: -</div>
+        </div>
+      </header>
+
+      <!-- 集計サマリーカード -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+          <div class="text-xs font-bold text-slate-500">提出人数</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="statCount" class="text-3xl font-bold text-slate-900">0</span>
+            <span class="text-sm text-slate-500">名</span>
+          </div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+          <div class="text-xs font-bold text-slate-500">STEP 1 提出回答数</div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="statStep1Total" class="text-3xl font-bold text-blue-600">0</span>
+            <span class="text-sm text-slate-500">件</span>
+            <span class="text-slate-300">/</span>
+            <span id="statStep1Unique" class="text-2xl font-bold text-indigo-600">0</span>
+            <span class="text-sm text-slate-500">回答</span>
+          </div>
+        </div>
+        <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+          <div class="text-xs font-bold text-slate-500">STEP 2 平均スコア</div>
+          <div class="mt-2 flex items-baseline gap-1.5">
+            <span id="statAvgScore" class="text-3xl font-bold text-emerald-600">-</span>
+            <span class="text-sm text-slate-500">/ 10点</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 各ステップの提出状況 -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-5 sm:p-6 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">各ステップの提出状況</h2>
+            <p class="text-xs text-slate-500 mt-1">生徒がSTEPごとの「提出」ボタンを押すと、提出内容と提出時刻がここに反映されます。</p>
+          </div>
+          <span class="text-xs text-slate-500">クラス別フィルタに連動</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[720px]">
+            <thead><tr class="text-left text-xs text-slate-500 border-b border-slate-200"><th class="py-2 px-2">生徒</th><th class="py-2 px-2">STEP 1</th><th class="py-2 px-2">STEP 2</th><th class="py-2 px-2">STEP 3</th><th class="py-2 px-2">最終更新</th></tr></thead>
+            <tbody id="stepSubmissionStatusBody"></tbody>
+          </table>
+        </div>
+        <p id="emptyStepSubmissionStatus" class="hidden py-6 text-center text-sm text-slate-400">まだ提出はありません。</p>
+      </section>
+
+      <!-- STEP 1 集計セクション（メイン機能：共通ランキング ＆ 個人別一覧） -->
+      <div class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- 1. 全員の回答ランキング（共通して挙がった部首・多い順） -->
+        <section class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col">
+          <div class="flex items-start justify-between gap-2 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-700 text-xs font-bold">STEP 1 回答一覧</span>
+                <h2 class="text-lg font-bold text-slate-900">部首の意味についての回答</h2>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">生徒が自分の言葉で説明した内容を確認できます。</p>
+            </div>
+          </div>
+
+          <div id="step1RankingContainer" class="space-y-3 flex-1">
+            <!-- JSでランキング描画 -->
+          </div>
+          <div id="emptyStep1RankingMsg" class="py-12 text-center text-slate-400 text-sm hidden">
+            データがありません。生徒の提出があるとランキングが表示されます。
+          </div>
+        </section>
+
+        <!-- 2. 個人別のSTEP 1回答一覧 -->
+        <section class="lg:col-span-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col">
+          <div class="mb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 text-xs font-bold">STEP 1 個人別回答</span>
+              <h2 class="text-lg font-bold text-slate-900">部首の意味についての回答一覧</h2>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">各生徒の記述回答を確認できます。</p>
+          </div>
+
+          <div id="step1IndividualList" class="divide-y divide-slate-100 max-h-[540px] overflow-y-auto pr-1">
+            <!-- JSで個人別カード一覧描画 -->
+          </div>
+          <div id="emptyStep1IndividualMsg" class="py-12 text-center text-slate-400 text-sm hidden">
+            まだ個人回答データがありません。
+          </div>
+        </section>
+      </div>
+
+      <!-- 生徒の総合提出一覧テーブル（STEP1〜3全体＆詳細モーダル） -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">生徒別の全STEP提出状況一覧</h2>
+            <p class="text-xs text-slate-500">「詳細」をクリックすると、STEP 1〜3の回答内容を確認できます。</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b-2 border-slate-200 bg-slate-50 text-slate-600 text-xs">
+                <th class="py-3 px-3 font-bold">クラス・番号・名前</th>
+                <th class="py-3 px-3 font-bold">提出日時</th>
+                <th class="py-3 px-3 font-bold">STEP 1 回答</th>
+                <th class="py-3 px-3 font-bold">STEP 2 得点</th>
+                <th class="py-3 px-3 font-bold">STEP 3 回答</th>
+                <th class="py-3 px-3 font-bold text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody id="submissionsTableBody" class="divide-y divide-slate-100">
+              <!-- JSで描画 -->
+            </tbody>
+          </table>
+        </div>
+        <div id="emptySubmissionsMsg" class="py-10 text-center text-slate-500 text-sm hidden">
+          まだ提出データがありません。各ステップの「提出」ボタンを押すと回答が反映されます。
+        </div>
+      </section>
+
+      <!-- STEP2 問題別正答率＆正答一覧テーブル -->
+      <section class="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
+        <div class="mb-4">
+          <h2 class="text-lg font-bold text-slate-900">STEP 2 出題・正答一覧＆問題別正答率</h2>
+          <p class="text-xs text-slate-500">全10問の正解データと、提出された回答に基づく問題ごとの正答率です。</p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="border-b-2 border-slate-200 bg-slate-50 text-slate-600 text-xs">
+                <th class="py-2.5 px-3 font-bold">問題番号</th>
+                <th class="py-2.5 px-3 font-bold">漢字</th>
+                <th class="py-2.5 px-3 font-bold">正解（部首の位置）</th>
+                <th class="py-2.5 px-3 font-bold">正答率（提出者集計）</th>
+              </tr>
+            </thead>
+            <tbody id="answerKeyTableBody" class="divide-y divide-slate-100">
+              <!-- JSで描画 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <footer class="no-print text-center text-slate-400 text-xs py-6">
+    部首学習ワークシート
+  </footer>
+
+<script>
+(() => {
+  // ===== 1. 定数・データ定義 =====
+  let submissionsCache = [];
+  let teacherAuthenticated = false;
+  const QUESTIONS = [
+    { kanji: '押', answer: 'へん', hint: 'てへん（左側）' },
+    { kanji: '酒', answer: 'つくり', hint: 'とり（右側）' },
+    { kanji: '慕', answer: 'あし', hint: 'したごころ（下側）' },
+    { kanji: '箇', answer: 'かんむり', hint: 'たけかんむり（上側）' },
+    { kanji: '刈', answer: 'つくり', hint: 'りっとう（右側）' },
+    { kanji: '烈', answer: 'あし', hint: 'れっか（下側）' },
+    { kanji: '疲', answer: 'たれ', hint: 'やまいだれ（上から左）' },
+    { kanji: '違', answer: 'にょう', hint: 'しんにょう（左から下）' },
+    { kanji: '園', answer: 'かまえ', hint: 'くにがまえ（外側）' },
+    { kanji: '超', answer: 'にょう', hint: 'そうにょう（左から下）' }
+  ];
+  const RADICAL_TYPES = ['へん', 'つくり', 'かんむり', 'あし', 'たれ', 'にょう', 'かまえ'];
+
+  let currentFilter = 'ALL';
+  let modalCallback = null;
+
+  // ===== 2. 正規化・ユーティリティ関数 =====
+  // 全角カタカナ→ひらがな変換、全角・半角スペース除去、小文字化など表記ゆれを統一
+  function normalizeRadicalName(raw) {
+    if (!raw) return '';
+    return String(raw)
+      .trim()
+      .replace(/[\s　]+/g, '')
+      .replace(/[\u30a1-\u30f6]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0x60));
+  }
+
+  function showToast(message, isError = false) {
+    const toast = document.getElementById('toast');
+    const inner = document.getElementById('toastInner');
+    const msg = document.getElementById('toastMessage');
+    msg.textContent = message;
+    inner.className = isError
+      ? 'bg-red-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-bold flex items-center gap-2'
+      : 'bg-slate-800 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-bold flex items-center gap-2';
+    toast.classList.remove('translate-y-24', 'opacity-0');
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.classList.add('translate-y-24', 'opacity-0');
+    }, 3200);
+  }
+
+  function openConfirm(title, desc, onConfirm, isDanger = false) {
+    const modal = document.getElementById('confirmModal');
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalDesc').textContent = desc;
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    confirmBtn.className = isDanger
+      ? 'px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-700 transition cursor-pointer'
+      : 'px-4 py-2.5 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition cursor-pointer';
+    modalCallback = onConfirm;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
+
+  function closeConfirm() {
+    const modal = document.getElementById('confirmModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modalCallback = null;
+  }
+
+  document.getElementById('modalCancelBtn').addEventListener('click', closeConfirm);
+  document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+    if (modalCallback) modalCallback();
+    closeConfirm();
+  });
+
+  function loadSubmissions() {
+    return submissionsCache;
+  }
+
+  function saveSubmissions(list) {
+    submissionsCache = Array.isArray(list) ? list : [];
+    updateNavBadge();
+  }
+
+  function updateNavBadge() {
+    const list = loadSubmissions();
+    document.getElementById('navCount').textContent = list.length;
+  }
+
+  function formatDate(isoString) {
+    const d = new Date(isoString);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${min}`;
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ===== 3. 生徒用ワークシートのステップ＆クイズ生成 =====
+  function showStep(step) {
+    document.querySelectorAll('.step-panel').forEach(panel => {
+      panel.hidden = Number(panel.dataset.step) !== step;
+    });
+    document.querySelectorAll('.step-tab').forEach(tab => {
+      const active = Number(tab.dataset.goto) === step;
+      tab.className = active
+        ? 'step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer'
+        : 'step-tab px-4 py-2 rounded-full text-xs sm:text-sm font-bold bg-slate-200 text-slate-600 hover:bg-slate-300 transition cursor-pointer';
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.querySelectorAll('.step-tab').forEach(btn => {
+    btn.addEventListener('click', () => showStep(Number(btn.dataset.goto)));
+  });
+  document.querySelectorAll('.next-step').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = Number(btn.dataset.next);
+      const cls = document.getElementById('studentClass').value;
+      const num = Number(document.getElementById('studentNumber').value);
+      if (next === 2 || next === 3) {
+        if (!cls || !num || !document.getElementById('studentName').value.trim()) {
+          showToast('最初にクラス・出席番号・名前を入力してください。', true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        const record = loadSubmissions().find(item => item.studentClass === cls && item.studentNumber === num);
+        const requiredStep = next - 1;
+        const submitted = requiredStep === 1 ? record?.step1SubmittedAt : record?.step2SubmittedAt;
+        if (!submitted) {
+          showToast(`STEP ${requiredStep}を提出してから次へ進んでください。`, true);
+          return;
+        }
+      }
+      showStep(next);
+    });
+  });
+  document.querySelectorAll('.prev-step').forEach(btn => {
+    btn.addEventListener('click', () => showStep(Number(btn.dataset.prev)));
+  });
+
+  // 各STEPの提出内容をCloudflare Pages Functions経由で共有データベースへ保存
+  async function saveStepDraft(step, payload) {
+    const cls = document.getElementById('studentClass').value;
+    const num = Number(document.getElementById('studentNumber').value);
+    const name = document.getElementById('studentName').value.trim();
+    if (!cls || !num || !name) {
+      showToast('最初にクラス・出席番号・名前を入力してください。', true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return false;
+    }
+    if (name.length > 40) { showToast('名前は40文字以内で入力してください。', true); return false; }
+    const submitButton = document.getElementById(step === 3 ? 'submitBtn' : `submitStep${step}Btn`);
+    if (submitButton) submitButton.disabled = true;
+    try {
+      const response = await fetch('/api/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentClass: cls, studentNumber: num, studentName: name, step, payload })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || '提出データを保存できませんでした。');
+      const record = result.record;
+      const list = loadSubmissions().filter(item => item.id !== record.id);
+      list.push(record);
+      saveSubmissions(list);
+      const status = document.getElementById(`step${step}SubmitStatus`);
+      if (status) status.textContent = `✓ STEP ${step}を提出しました。先生のダッシュボードに保存されました。`;
+      showToast(`STEP ${step}を提出しました。`);
+      return true;
+    } catch (error) {
+      console.error(error);
+      showToast(error.message || '通信に失敗しました。ネットワークを確認してください。', true);
+      return false;
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+  }
+
+  document.getElementById('submitStep1Btn').addEventListener('click', () => {
+    const answer = document.getElementById('step1Definition').value.trim();
+    if (!answer) {
+      showToast('STEP 1の問いに回答してから提出してください。', true);
+      document.getElementById('step1Definition').focus();
+      return;
+    }
+    saveStepDraft(1, [answer]);
+  });
+  document.getElementById('submitStep2Btn').addEventListener('click', () => {
+    const { score, unanswered, userAnswers } = evaluateQuiz(true);
+    if (unanswered > 0) {
+      openConfirm('未回答の問題があります', `STEP 2に未回答の問題が ${unanswered}問 あります。この内容で提出してもよろしいですか？`, () => saveStepDraft(2, { score, answers: userAnswers }));
+    } else {
+      saveStepDraft(2, { score, answers: userAnswers });
+    }
+  });
+
+  // 最初は「部首とは？」の説明ページを表示する
+  showStep(0);
+
+  // STEP2のクイズカード生成
+  const quizContainer = document.getElementById('quiz');
+  QUESTIONS.forEach((q, idx) => {
+    const card = document.createElement('div');
+    card.className = 'border border-slate-200 rounded-xl p-3.5 bg-slate-50/40 flex flex-col justify-between transition';
+    card.id = `qCard${idx}`;
+    card.innerHTML = `
+      <div>
+        <div class="flex items-center justify-between text-xs text-slate-400 font-bold">
+          <span>問題 ${idx + 1}</span>
+          <span id="qBadge${idx}"></span>
+        </div>
+        <div class="kanji-font text-4xl font-bold text-center text-slate-900 my-3 select-none">${q.kanji}</div>
+      </div>
+      <div>
+        <label for="qSelect${idx}" class="sr-only">問題${idx + 1}の部首の位置</label>
+        <select id="qSelect${idx}" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">選択してください</option>
+          ${RADICAL_TYPES.map(t => `<option value="${t}">${t}</option>`).join('')}
+        </select>
+        <div id="qFeedback${idx}" class="text-xs font-bold mt-1.5 min-h-[1.1rem]"></div>
+      </div>
+    `;
+    quizContainer.appendChild(card);
+  });
+
+  // 答え合わせ処理
+  function evaluateQuiz(showFeedback = true) {
+    let score = 0;
+    let unanswered = 0;
+    const userAnswers = [];
+
+    QUESTIONS.forEach((q, i) => {
+      const val = document.getElementById(`qSelect${i}`).value;
+      const fb = document.getElementById(`qFeedback${i}`);
+      const card = document.getElementById(`qCard${i}`);
+      const isCorrect = val === q.answer;
+
+      userAnswers.push({
+        kanji: q.kanji,
+        selected: val,
+        correctAnswer: q.answer,
+        isCorrect
+      });
+
+      if (!val) {
+        unanswered++;
+        if (showFeedback) {
+          fb.textContent = '未回答';
+          fb.className = 'text-xs font-bold mt-1.5 min-h-[1.1rem] text-slate-400';
+          card.className = 'border border-slate-200 rounded-xl p-3.5 bg-slate-50/40 flex flex-col justify-between';
+        }
+      } else if (isCorrect) {
+        score++;
+        if (showFeedback) {
+          fb.textContent = '○ 正解';
+          fb.className = 'text-xs font-bold mt-1.5 min-h-[1.1rem] text-emerald-600';
+          card.className = 'border border-emerald-300 rounded-xl p-3.5 bg-emerald-50/40 flex flex-col justify-between';
+        }
+      } else {
+        if (showFeedback) {
+          fb.textContent = `× 不正解（正解：${q.answer}）`;
+          fb.className = 'text-xs font-bold mt-1.5 min-h-[1.1rem] text-red-600';
+          card.className = 'border border-red-300 rounded-xl p-3.5 bg-red-50/40 flex flex-col justify-between';
+        }
+      }
+    });
+
+    return { score, unanswered, userAnswers };
+  }
+
+  document.getElementById('checkBtn').addEventListener('click', () => {
+    const { score, unanswered } = evaluateQuiz(true);
+    const resultBox = document.getElementById('resultBox');
+    resultBox.classList.remove('hidden');
+    resultBox.innerHTML = `
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="text-base sm:text-lg font-bold text-slate-900">
+          得点：<span class="text-2xl text-blue-600">${score}</span> / 10点
+        </div>
+        <span class="text-xs font-bold px-2.5 py-1 rounded-full ${unanswered === 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}">
+          ${unanswered === 0 ? '全問回答しました' : `未回答：${unanswered}問あります`}
+        </span>
+      </div>
+      <p class="text-xs text-slate-600 mt-1">間違えた問題は、正解を確認して復習しよう。</p>
+    `;
+    showToast(`答え合わせ完了！ ${score} / 10点でした`);
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    QUESTIONS.forEach((_, i) => {
+      document.getElementById(`qSelect${i}`).value = '';
+      document.getElementById(`qFeedback${i}`).textContent = '';
+      document.getElementById(`qCard${i}`).className = 'border border-slate-200 rounded-xl p-3.5 bg-slate-50/40 flex flex-col justify-between';
+    });
+    document.getElementById('resultBox').classList.add('hidden');
+    showToast('選択をリセットしました');
+  });
+
+  // クリップボードコピー（document.execCommand フォールバック対応）
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    const cls = document.getElementById('studentClass').value || '未入力';
+    const no = document.getElementById('studentNumber').value || '未入力';
+    const name = document.getElementById('studentName').value.trim() || '未入力';
+    const step1 = document.getElementById('step1Definition').value.trim();
+    const { score, userAnswers } = evaluateQuiz(false);
+    const ansLines = userAnswers.map((a, i) => `${i + 1}. ${a.kanji}: ${a.selected || '未回答'}（正解：${a.correctAnswer}）`).join('\n');
+    const learned = document.getElementById('learned').value.trim() || '（未記入）';
+    const difficult = document.getElementById('difficult').value.trim() || '（未記入）';
+
+    const text = [
+      '部首学習ワークシート',
+      `クラス：${cls}`,
+      `出席番号：${no}`,
+      `名前：${name}`,
+      '',
+      'STEP1',
+      step1 || '未記入',
+      '',
+      `STEP2（得点：${score}/10点）`,
+      ansLines,
+      '',
+      'STEP3',
+      `部首の名前：${learned}`,
+      `難しかったこと：${difficult}`
+    ].join('\n');
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      showToast('回答と振り返りをコピーしました。');
+    } catch (err) {
+      showToast('コピーできませんでした。ブラウザの権限を確認してください。', true);
+    }
+    document.body.removeChild(textarea);
+  });
+
+  // STEP 3の問いへの回答を独立して提出
+  document.getElementById('submitBtn').addEventListener('click', () => {
+    const answer = document.getElementById('learned').value.trim();
+    if (!answer) {
+      showToast('STEP 3の問いに回答してから提出してください。', true);
+      document.getElementById('learned').focus();
+      return;
+    }
+    saveStepDraft(3, { answer, reflection: document.getElementById('difficult').value.trim() });
+  });
+
+  // 次の生徒用にクリア
+  document.getElementById('newStudentBtn').addEventListener('click', () => {
+    openConfirm(
+      '入力内容をクリアしますか？',
+      '現在の画面の入力内容（クラス・出席番号・名前・STEP1〜3）をすべて消去して初期状態に戻します。※すでに提出済みのデータはダッシュボードに残ります。',
+      () => {
+        document.getElementById('studentClass').value = '';
+        document.getElementById('studentNumber').value = '';
+        document.getElementById('studentName').value = '';
+        document.getElementById('step1Definition').value = '';
+        QUESTIONS.forEach((_, i) => {
+          document.getElementById(`qSelect${i}`).value = '';
+          document.getElementById(`qFeedback${i}`).textContent = '';
+          document.getElementById(`qCard${i}`).className = 'border border-slate-200 rounded-xl p-3.5 bg-slate-50/40 flex flex-col justify-between';
+        });
+        document.getElementById('resultBox').classList.add('hidden');
+        document.getElementById('learned').value = '';
+        document.getElementById('difficult').value = '';
+        document.getElementById('step3SubmitStatus').textContent = 'STEP 3の問いに回答して提出してください。';
+        document.getElementById('step1SubmitStatus').textContent = '回答を入力して提出してから次へ進もう。';
+        document.getElementById('step2SubmitStatus').textContent = '10問に回答し、答え合わせをしてから提出しよう。';
+        showStep(1);
+        showToast('入力をクリアしました');
+      }
+    );
+  });
+
+  // ===== 4. 教員用ダッシュボードの描画・機能 =====
+  function renderDashboard() {
+    const allList = loadSubmissions();
+    const filtered = currentFilter === 'ALL'
+      ? allList
+      : allList.filter(item => item.studentClass === currentFilter);
+
+    // クラス・出席番号順にソート
+    filtered.sort((a, b) => {
+      if (a.studentClass !== b.studentClass) return a.studentClass.localeCompare(b.studentClass, 'ja');
+      return a.studentNumber - b.studentNumber;
+    });
+
+    const count = filtered.length;
+    document.getElementById('statCount').textContent = count;
+
+    // 各ステップの提出状況一覧
+    const stepStatusBody = document.getElementById('stepSubmissionStatusBody');
+    const emptyStepStatus = document.getElementById('emptyStepSubmissionStatus');
+    stepStatusBody.innerHTML = '';
+    const hasAnyStepSubmission = filtered.some(item => item.step1SubmittedAt || item.step2SubmittedAt || item.step3SubmittedAt || item.step1 || item.answers || item.learned || item.difficult);
+    if (!hasAnyStepSubmission) {
+      emptyStepStatus.classList.remove('hidden');
+    } else {
+      emptyStepStatus.classList.add('hidden');
+      filtered.forEach(item => {
+        const statusCell = (done, at, detail) => done
+          ? `<div class="font-bold text-emerald-700">✓ 提出済み</div><div class="text-[11px] text-slate-500">${formatDate(at || item.updatedAt || item.submittedAt)}</div><div class="text-xs text-slate-700 mt-1 break-words">${detail}</div>`
+          : '<span class="text-slate-400 text-xs">未提出</span>';
+        const s1Done = !!(item.step1SubmittedAt || item.step1);
+        const s2Done = !!(item.step2SubmittedAt || item.answers);
+        const s3Done = !!(item.step3SubmittedAt || item.learned || item.difficult);
+        const s1Text = (item.step1 || []).length ? escapeHtml(item.step1.join('・')) : '（回答なし）';
+        const s2Text = Number.isFinite(item.score) ? `${item.score}/10点` : '（回答なし）';
+        const s3Text = [item.learned, item.difficult].filter(Boolean).map(escapeHtml).join('<br>') || '（回答なし）';
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-100 align-top';
+        tr.innerHTML = `<td class="py-3 px-2 font-bold whitespace-nowrap">${escapeHtml(item.studentClass)} ${item.studentNumber}番 ${escapeHtml(item.studentName || "")}</td><td class="py-3 px-2 min-w-[150px]">${statusCell(s1Done, item.step1SubmittedAt, s1Text)}</td><td class="py-3 px-2 min-w-[120px]">${statusCell(s2Done, item.step2SubmittedAt, s2Text)}</td><td class="py-3 px-2 min-w-[180px]">${statusCell(s3Done, item.step3SubmittedAt, s3Text)}</td><td class="py-3 px-2 text-xs text-slate-500 whitespace-nowrap">${formatDate(item.updatedAt || item.submittedAt || item.step1SubmittedAt || item.step2SubmittedAt)}</td>`;
+        stepStatusBody.appendChild(tr);
+      });
+    }
+
+    // --- STEP 1 集計処理（共通ランキング & 延べ数/回答数） ---
+    // 同一生徒が同じ部首を複数欄に書いた場合は1カウントとして集計
+    const radicalMap = new Map(); // normalizedName => { name, count, students: [] }
+    let totalStep1Entries = 0;
+
+    filtered.forEach(student => {
+      const uniqueForStudent = [...new Set(
+        (student.step1 || []).map(w => normalizeRadicalName(w)).filter(Boolean)
+      )];
+      totalStep1Entries += uniqueForStudent.length;
+
+      uniqueForStudent.forEach(word => {
+        if (!radicalMap.has(word)) {
+          radicalMap.set(word, { name: word, count: 0, students: [] });
+        }
+        const entry = radicalMap.get(word);
+        entry.count += 1;
+        entry.students.push(`${student.studentClass}${student.studentNumber}番 ${student.studentName || ''}`);
+      });
+    });
+
+    const rankingList = Array.from(radicalMap.values()).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name, 'ja');
+    });
+
+    document.getElementById('statStep1Total').textContent = totalStep1Entries;
+    document.getElementById('statStep1Unique').textContent = rankingList.length;
+
+    // STEP 2 平均スコア
+    if (count === 0) {
+      document.getElementById('statAvgScore').textContent = '-';
+    } else {
+      const scored = filtered.filter(item => Number.isFinite(item.score));
+      const totalScore = scored.reduce((sum, item) => sum + item.score, 0);
+      document.getElementById('statAvgScore').textContent = scored.length ? (totalScore / scored.length).toFixed(1) : '-';
+    }
+
+    // --- 1. STEP 1 回答一覧描画 ---
+    const rankingContainer = document.getElementById('step1RankingContainer');
+    const emptyRankingMsg = document.getElementById('emptyStep1RankingMsg');
+    rankingContainer.innerHTML = '';
+
+    if (rankingList.length === 0) {
+      emptyRankingMsg.classList.remove('hidden');
+    } else {
+      emptyRankingMsg.classList.add('hidden');
+      const maxCount = rankingList[0].count;
+
+      // 同率順位を計算しながら表示
+      let currentRank = 1;
+      rankingList.forEach((item, index) => {
+        if (index > 0 && item.count < rankingList[index - 1].count) {
+          currentRank = index + 1;
+        }
+        const pctOfStudents = count > 0 ? Math.round((item.count / count) * 100) : 0;
+        const barWidth = maxCount > 0 ? Math.round((item.count / maxCount) * 100) : 0;
+
+        let rankBadgeClass = 'bg-slate-100 text-slate-600 border-slate-200';
+        let barColorClass = 'bg-blue-500';
+        if (currentRank === 1) {
+          rankBadgeClass = 'bg-amber-100 text-amber-800 border-amber-300 ring-2 ring-amber-200/60';
+          barColorClass = 'bg-amber-500';
+        } else if (currentRank === 2) {
+          rankBadgeClass = 'bg-slate-200 text-slate-800 border-slate-300';
+          barColorClass = 'bg-blue-600';
+        } else if (currentRank === 3) {
+          rankBadgeClass = 'bg-orange-100 text-orange-800 border-orange-300';
+          barColorClass = 'bg-indigo-500';
+        }
+
+        const row = document.createElement('div');
+        row.className = 'p-3 rounded-xl border border-slate-100 bg-slate-50/70 hover:bg-blue-50/40 transition';
+        row.innerHTML = `
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <div class="flex items-center gap-2.5">
+              <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg border text-xs font-bold ${rankBadgeClass}">
+                ${currentRank}位
+              </span>
+              <span class="font-bold text-base text-slate-900">${escapeHtml(item.name)}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-sm font-bold text-blue-700">${item.count}人</span>
+              <span class="text-xs text-slate-500 ml-1">(${pctOfStudents}%)</span>
+            </div>
+          </div>
+          <div class="w-full h-2.5 bg-slate-200/80 rounded-full overflow-hidden mb-1.5">
+            <div class="h-full ${barColorClass} rounded-full transition-all duration-300" style="width: ${barWidth}%"></div>
+          </div>
+          <div class="text-[11px] text-slate-500 truncate" title="${escapeHtml(item.students.join('、'))}">
+            回答者：${escapeHtml(item.students.join('、'))}
+          </div>
+        `;
+        rankingContainer.appendChild(row);
+      });
+    }
+
+    // --- 2. STEP 1 個人別回答回答一覧描画 ---
+    const individualContainer = document.getElementById('step1IndividualList');
+    const emptyIndividualMsg = document.getElementById('emptyStep1IndividualMsg');
+    individualContainer.innerHTML = '';
+
+    if (count === 0) {
+      emptyIndividualMsg.classList.remove('hidden');
+    } else {
+      emptyIndividualMsg.classList.add('hidden');
+      // 上位3位の部首名をハイライト用に抽出
+      const top3Names = new Set(rankingList.slice(0, 3).map(r => r.name));
+
+      filtered.forEach(student => {
+        const words = (student.step1 || []).map(w => normalizeRadicalName(w)).filter(Boolean);
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'py-3 px-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-50 rounded-lg transition';
+
+        const tagsHtml = words.length
+          ? words.map(w => {
+              const isPopular = top3Names.has(w);
+              const tagStyle = isPopular
+                ? 'bg-blue-50 text-blue-700 border-blue-200 font-bold'
+                : 'bg-slate-100 text-slate-700 border-slate-200 font-medium';
+              return `<span class="inline-flex items-center px-2.5 py-1 rounded-lg border text-xs ${tagStyle}">${escapeHtml(w)}</span>`;
+            }).join('')
+          : '<span class="text-xs text-slate-400">（未入力）</span>';
+
+        itemDiv.innerHTML = `
+          <div class="flex items-center gap-2 shrink-0 min-w-[96px]">
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-white text-xs font-bold">${escapeHtml(student.studentClass)}</span>
+            <span class="font-bold text-sm text-slate-800">${student.studentNumber}番</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5 flex-1">
+            ${tagsHtml}
+          </div>
+        `;
+        individualContainer.appendChild(itemDiv);
+      });
+    }
+
+    // --- 3. 生徒別の全STEP提出一覧テーブル描画 ---
+    const tbody = document.getElementById('submissionsTableBody');
+    const emptyMsg = document.getElementById('emptySubmissionsMsg');
+    tbody.innerHTML = '';
+
+    if (count === 0) {
+      emptyMsg.classList.remove('hidden');
+    } else {
+      emptyMsg.classList.add('hidden');
+      filtered.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        const scoreBadgeClass = (item.score ?? 0) >= 8
+          ? 'bg-emerald-100 text-emerald-800'
+          : (item.score ?? 0) >= 5
+            ? 'bg-blue-100 text-blue-800'
+            : 'bg-amber-100 text-amber-800';
+
+        const step1Summary = item.step1 && item.step1.length ? item.step1.join(' ') : '未提出';
+
+        tr.innerHTML = `
+          <td class="py-3 px-3 font-bold text-slate-900 whitespace-nowrap">${escapeHtml(item.studentClass)} ${item.studentNumber}番 ${escapeHtml(item.studentName || "")}</td>
+          <td class="py-3 px-3 text-xs text-slate-500 whitespace-nowrap">${formatDate(item.submittedAt || item.updatedAt || item.step1SubmittedAt || item.step2SubmittedAt)}</td>
+          <td class="py-3 px-3 text-slate-700 max-w-[200px] truncate" title="${escapeHtml(step1Summary)}">${escapeHtml(step1Summary)}</td>
+          <td class="py-3 px-3 whitespace-nowrap"><span class="px-2.5 py-1 rounded-full text-xs font-bold ${scoreBadgeClass}">${Number.isFinite(item.score) ? item.score + ' / 10点' : '未提出'}</span></td>
+          <td class="py-3 px-3 text-slate-600 max-w-xs truncate">${escapeHtml(item.learned || '（未記入）')}</td>
+          <td class="py-3 px-3 text-right whitespace-nowrap space-x-1">
+            <button type="button" class="view-detail-btn px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold transition cursor-pointer" data-id="${item.id}">詳細</button>
+            <button type="button" class="delete-item-btn px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 text-xs font-bold transition cursor-pointer" data-id="${item.id}" title="削除">削除</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- 4. STEP2 出題・正答一覧＆問題別正答率テーブル描画 ---
+    const keyBody = document.getElementById('answerKeyTableBody');
+    keyBody.innerHTML = '';
+    QUESTIONS.forEach((q, idx) => {
+      let rateHtml = '<span class="text-xs text-slate-400">データなし</span>';
+      if (count > 0) {
+        const correctNum = filtered.filter(item => (item.answers || [])[idx] && item.answers[idx].isCorrect).length;
+        const pct = Math.round((correctNum / count) * 100);
+        const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-blue-500' : 'bg-amber-500';
+        rateHtml = `
+          <div class="flex items-center gap-2.5">
+            <div class="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div class="h-full ${barColor}" style="width: ${pct}%"></div>
+            </div>
+            <span class="text-xs font-bold text-slate-700">${pct}% <span class="font-normal text-slate-400">(${correctNum}/${count}名)</span></span>
+          </div>
+        `;
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="py-2.5 px-3 text-slate-500 font-medium">問題 ${idx + 1}</td>
+        <td class="py-2.5 px-3 kanji-font text-xl font-bold text-slate-900">${q.kanji}</td>
+        <td class="py-2.5 px-3"><span class="px-2.5 py-0.5 rounded bg-blue-50 text-blue-700 font-bold text-xs">${q.answer}</span> <span class="text-xs text-slate-400 ml-1">${q.hint}</span></td>
+        <td class="py-2.5 px-3">${rateHtml}</td>
+      `;
+      keyBody.appendChild(tr);
+    });
+
+    document.getElementById('lastUpdatedLabel').textContent = `最終更新: ${formatDate(new Date().toISOString())}`;
+  }
+
+  // 詳細モーダル＆個別削除のイベント委譲
+  document.getElementById('submissionsTableBody').addEventListener('click', (e) => {
+    const detailBtn = e.target.closest('.view-detail-btn');
+    const delBtn = e.target.closest('.delete-item-btn');
+
+    if (detailBtn) {
+      const id = detailBtn.dataset.id;
+      const item = loadSubmissions().find(s => s.id === id);
+      if (!item) return;
+
+      document.getElementById('detailModalTitle').textContent = `${item.studentClass} ${item.studentNumber}番 ${item.studentName || ""} の回答詳細`;
+      document.getElementById('detailModalSub').textContent = `提出日時：${formatDate(item.submittedAt || item.updatedAt || item.step1SubmittedAt || item.step2SubmittedAt)} ／ 得点：${Number.isFinite(item.score) ? item.score + ' / 10点' : '未提出'}`;
+
+      const ansGrid = (item.answers || []).map((a, i) => `
+        <div class="p-2.5 rounded-xl border ${a.isCorrect ? 'border-emerald-200 bg-emerald-50/50' : 'border-red-200 bg-red-50/50'} flex items-center justify-between">
+          <div>
+            <span class="text-xs text-slate-400 mr-1">${i + 1}.</span>
+            <span class="kanji-font font-bold text-base text-slate-900">${a.kanji}</span>
+          </div>
+          <div class="text-right text-xs">
+            <div class="font-bold ${a.isCorrect ? 'text-emerald-700' : 'text-red-700'}">${escapeHtml(a.selected || '未回答')}</div>
+            ${!a.isCorrect ? `<div class="text-slate-500">正: ${a.correctAnswer}</div>` : ''}
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('detailModalBody').innerHTML = `
+        <div>
+          <h4 class="font-bold text-slate-800 mb-1.5">STEP 1：部首とは何か？</h4>
+          <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700">
+            ${(item.step1 || []).length ? `<span class="whitespace-pre-wrap">${escapeHtml(item.step1.join(' '))}</span>` : '（記入なし）'}
+          </div>
+        </div>
+        <div>
+          <h4 class="font-bold text-slate-800 mb-1.5">STEP 2：部首の位置分類（${Number.isFinite(item.score) ? item.score + ' / 10点' : '未提出'}）</h4>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${ansGrid}</div>
+        </div>
+        <div class="space-y-3">
+          <div>
+            <h4 class="font-bold text-slate-800 mb-1">STEP 3：漢字の部首と名前</h4>
+            <div class="p-3 rounded-xl bg-blue-50/50 border border-blue-100 text-slate-800 whitespace-pre-wrap">${escapeHtml(item.learned || '（未記入）')}</div>
+          </div>
+          <div>
+            <h4 class="font-bold text-slate-800 mb-1">STEP 3：振り返り（任意）</h4>
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 whitespace-pre-wrap">${escapeHtml(item.difficult || '（未記入）')}</div>
+          </div>
+        </div>
+      `;
+
+      const modal = document.getElementById('detailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    if (delBtn) {
+      const id = delBtn.dataset.id;
+      openConfirm('回答データの削除', 'この生徒の提出データを削除してもよろしいですか？', () => {
+        fetch(`/api/teacher/submissions?id=${encodeURIComponent(id)}`, { method: 'DELETE' })
+          .then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || '削除できませんでした。'); return data; })
+          .then(() => { saveSubmissions(loadSubmissions().filter(s => s.id !== id)); renderDashboard(); showToast('提出データを削除しました'); })
+          .catch(error => showToast(error.message, true));
+      }, true);
+    }
+  });
+
+  function closeDetailModal() {
+    const modal = document.getElementById('detailModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
+  document.getElementById('closeDetailModalBtn').addEventListener('click', closeDetailModal);
+  document.getElementById('closeDetailModalBtn2').addEventListener('click', closeDetailModal);
+
+  // クラスフィルタ切り替え
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.className = b === btn
+          ? 'filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white cursor-pointer'
+          : 'filter-btn px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer';
+      });
+      renderDashboard();
+    });
+  });
+
+  // CSV出力機能（Excel文字化け防止のUTF-8 BOM付き）
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    const list = loadSubmissions();
+    if (list.length === 0) {
+      showToast('出力する提出データがありません。', true);
+      return;
+    }
+
+    const headers = [
+      'クラス', '出席番号', '名前', '提出日時', 'STEP1記述数', 'STEP1回答1', 'STEP1回答2', 'STEP1回答3', 'STEP1回答4', 'STEP1回答5', 'STEP2得点',
+      ...QUESTIONS.map((q, i) => `問${i + 1}_${q.kanji}`),
+      '分かったこと', '難しかったこと'
+    ];
+
+    const rows = list.map(item => [
+      item.studentClass,
+      item.studentNumber,
+      item.studentName || '',
+      formatDate(item.submittedAt || item.updatedAt),
+      (item.step1 || []).length,
+      item.step1?.[0] || '',
+      item.step1?.[1] || '',
+      item.step1?.[2] || '',
+      item.step1?.[3] || '',
+      item.step1?.[4] || '',
+      item.score,
+      ...(item.answers || []).map(a => a.selected || '未回答'),
+      item.learned,
+      item.difficult
+    ]);
+
+    const csvContent = '\uFEFF' + [headers, ...rows]
+      .map(row => row.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `部首ワークシート集計_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('CSVファイルをダウンロードしました！');
+  });
+
+  // 全データ削除
+  document.getElementById('clearAllDataBtn').addEventListener('click', () => {
+    openConfirm(
+      '全提出データの削除',
+      '保存されているすべての生徒の提出データを完全に削除します。この操作は取り消せません。よろしいですか？',
+      () => {
+        fetch('/api/teacher/submissions', { method: 'DELETE' })
+          .then(async response => { const data = await response.json().catch(() => ({})); if (!response.ok) throw new Error(data.error || '削除できませんでした。'); return data; })
+          .then(() => { saveSubmissions([]); renderDashboard(); showToast('すべての提出データを削除しました'); })
+          .catch(error => showToast(error.message, true));
+      },
+      true
+    );
+  });
+
+  // ===== 5. 右上ボタンによる生徒画面 ⇔ 教員用ダッシュボード切り替え =====
+  const toggleBtn = document.getElementById('toggleDashboardBtn');
+  const toggleBtnText = document.getElementById('toggleBtnText');
+  const navIconTeacher = document.getElementById('navIconTeacher');
+  const navIconStudent = document.getElementById('navIconStudent');
+  const studentView = document.getElementById('studentView');
+  const teacherDashboard = document.getElementById('teacherDashboard');
+  let dashboardPollTimer = null;
+
+  async function refreshTeacherDashboard(silent = true) {
+    try {
+      const response = await fetch('/api/teacher/submissions', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = await response.json();
+      saveSubmissions(data.submissions || []);
+      if (!teacherDashboard.hidden) renderDashboard();
+    } catch (error) {
+      if (!silent) showToast('最新の提出データを取得できませんでした。', true);
+    }
+  }
+  function startDashboardPolling() {
+    if (dashboardPollTimer) clearInterval(dashboardPollTimer);
+    dashboardPollTimer = setInterval(() => {
+      if (!teacherDashboard.hidden) refreshTeacherDashboard(true);
+    }, 10000);
+  }
+
+  const teacherPasswordModal = document.getElementById('teacherPasswordModal');
+  const teacherPasswordForm = document.getElementById('teacherPasswordForm');
+  const teacherPasswordInput = document.getElementById('teacherPasswordInput');
+  const teacherPasswordError = document.getElementById('teacherPasswordError');
+
+  function openTeacherPasswordModal() {
+    teacherPasswordInput.value = '';
+    teacherPasswordError.classList.add('hidden');
+    teacherPasswordModal.classList.remove('hidden');
+    teacherPasswordModal.classList.add('flex');
+    setTimeout(() => teacherPasswordInput.focus(), 0);
+  }
+  function closeTeacherPasswordModal() {
+    teacherPasswordModal.classList.add('hidden');
+    teacherPasswordModal.classList.remove('flex');
+  }
+
+  document.getElementById('cancelTeacherPassword').addEventListener('click', closeTeacherPasswordModal);
+  teacherPasswordModal.addEventListener('click', (event) => {
+    if (event.target === teacherPasswordModal) closeTeacherPasswordModal();
+  });
+  teacherPasswordForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    teacherPasswordError.classList.add('hidden');
+    try {
+      const loginResponse = await fetch('/api/teacher/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: teacherPasswordInput.value }) });
+      if (!loginResponse.ok) { teacherPasswordError.classList.remove('hidden'); teacherPasswordInput.select(); return; }
+      const dataResponse = await fetch('/api/teacher/submissions');
+      const data = await dataResponse.json().catch(() => ({}));
+      if (!dataResponse.ok) throw new Error(data.error || '提出データを読み込めませんでした。');
+      saveSubmissions(data.submissions || []);
+      teacherAuthenticated = true;
+      closeTeacherPasswordModal();
+      renderDashboard();
+      studentView.hidden = true;
+      teacherDashboard.hidden = false;
+      startDashboardPolling();
+      toggleBtnText.textContent = 'ワークシートに戻る';
+      toggleBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-slate-700 text-white bg-slate-800 hover:bg-slate-700 active:scale-[0.99] transition-all shadow-xs cursor-pointer';
+      navIconTeacher.classList.add('hidden');
+      navIconStudent.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) { showToast(error.message || 'ログインに失敗しました。', true); }
+  });
+
+  toggleBtn.addEventListener('click', () => {
+    const isDashboardOpen = !teacherDashboard.hidden;
+    if (isDashboardOpen) {
+      // 生徒画面へ戻る
+      teacherDashboard.hidden = true;
+      if (dashboardPollTimer) { clearInterval(dashboardPollTimer); dashboardPollTimer = null; }
+      studentView.hidden = false;
+      toggleBtnText.textContent = '教員用ダッシュボード';
+      toggleBtn.className = 'inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border border-blue-600 text-blue-600 bg-white hover:bg-blue-50 active:scale-[0.99] transition-all shadow-xs cursor-pointer';
+      navIconTeacher.classList.remove('hidden');
+      navIconStudent.classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // ダッシュボードを開く前にパスワード認証
+      openTeacherPasswordModal();
+    }
+  });
+
+  // 初期化
+  updateNavBadge();
+})();
+</script>
+</body>
+</html>
